@@ -131,14 +131,8 @@ class DiscussionsDB:
         Returns the cursor object for further processing.
         """
         with sqlite3.connect(self.db_path) as conn:
-            if params is None:
-                cursor = conn.execute(query)
-            else:
-                cursor = conn.execute(query, params)
-            if fetch_all:
-                return cursor.fetchall()
-            else:
-                return cursor.fetchone()
+            cursor = conn.execute(query) if params is None else conn.execute(query, params)
+            return cursor.fetchall() if fetch_all else cursor.fetchone()
             
 
     def delete(self, query, params=None):
@@ -199,7 +193,9 @@ class DiscussionsDB:
         Returns:
             Discussion: A Discussion instance 
         """
-        discussion_id = self.insert(f"INSERT INTO discussion (title) VALUES (?)",(title,))
+        discussion_id = self.insert(
+            "INSERT INTO discussion (title) VALUES (?)", (title,)
+        )
         return Discussion(discussion_id, self)
 
     def build_discussion(self, discussion_id=0):
@@ -241,7 +237,10 @@ class DiscussionsDB:
             discussion_id = row[0]
             discussion_title = row[1]
             discussion = {"id": discussion_id, "title":discussion_title, "messages": []}
-            rows = self.select(f"SELECT sender, content, message_type, rank, parent_message_id, binding, model, personality, created_at, finished_generating_at FROM message WHERE discussion_id=?",(discussion_id,))
+            rows = self.select(
+                "SELECT sender, content, message_type, rank, parent_message_id, binding, model, personality, created_at, finished_generating_at FROM message WHERE discussion_id=?",
+                (discussion_id,),
+            )
             for message_row in rows:
                 sender = message_row[0]
                 content = message_row[1]
@@ -253,7 +252,7 @@ class DiscussionsDB:
                 personality = message_row[7]
                 created_at = message_row[8]
                 finished_generating_at = message_row[9]
-                
+
                 discussion["messages"].append(
                     {"sender": sender, "content": content, "message_type": content_type, "rank": rank, "parent_message_id": parent_message_id, "binding": binding, "model":model, "personality":personality, "created_at":created_at, "finished_generating_at":finished_generating_at}
                 )
@@ -318,15 +317,16 @@ class DiscussionsDB:
 
     def export_all_discussions_to_json(self):
         # Convert the list of discussion IDs to a tuple
-        db_discussions = self.select(
-            f"SELECT * FROM discussion"
-        )
+        db_discussions = self.select("SELECT * FROM discussion")
         discussions = []
         for row in db_discussions:
             discussion_id = row[0]
             discussion_title = row[1]
             discussion = {"id": discussion_id, "title":discussion_title, "messages": []}
-            rows = self.select(f"SELECT sender, content, message_type, rank, parent_message_id, binding, model, personality, created_at, finished_generating_at FROM message WHERE discussion_id=?",(discussion_id,))
+            rows = self.select(
+                "SELECT sender, content, message_type, rank, parent_message_id, binding, model, personality, created_at, finished_generating_at FROM message WHERE discussion_id=?",
+                (discussion_id,),
+            )
             for message_row in rows:
                 sender = message_row[0]
                 content = message_row[1]
@@ -338,7 +338,7 @@ class DiscussionsDB:
                 personality = message_row[7]
                 created_at = message_row[8]
                 finished_generating_at = message_row[9]
-                
+
                 discussion["messages"].append(
                     {"sender": sender, "content": content, "message_type": content_type, "rank": rank, "parent_message_id": parent_message_id, "binding": binding, "model":model, "personality":personality, "created_at":created_at, "finished_generating_at": finished_generating_at}
                 )
@@ -358,7 +358,10 @@ class DiscussionsDB:
             discussion_id = row[0]
             discussion_title = row[1]
             discussion = {"id": discussion_id, "title":discussion_title, "messages": []}
-            rows = self.select(f"SELECT sender, content, message_type, rank, parent_message_id, binding, model, personality, created_at, finished_generating_at FROM message WHERE discussion_id=?",(discussion_id,))
+            rows = self.select(
+                "SELECT sender, content, message_type, rank, parent_message_id, binding, model, personality, created_at, finished_generating_at FROM message WHERE discussion_id=?",
+                (discussion_id,),
+            )
             for message_row in rows:
                 sender = message_row[0]
                 content = message_row[1]
@@ -370,7 +373,7 @@ class DiscussionsDB:
                 personality = message_row[7]
                 created_at = message_row[8]
                 finished_generating_at = message_row[9]
-                
+
                 discussion["messages"].append(
                     {"sender": sender, "content": content, "message_type": content_type, "rank": rank, "parent_message_id": parent_message_id, "binding": binding, "model":model, "personality":personality, "created_at":created_at, "finished_generating_at": finished_generating_at}
                 )
@@ -425,7 +428,10 @@ class DiscussionsDB:
             discussion_id = row[0]
             discussion_title = row[1]
             discussions += f"## {discussion_title}\n"
-            rows = self.select(f"SELECT sender, content, message_type, rank, parent_message_id, binding, model, personality, created_at, finished_generating_at FROM message WHERE discussion_id=?",(discussion_id,))
+            rows = self.select(
+                "SELECT sender, content, message_type, rank, parent_message_id, binding, model, personality, created_at, finished_generating_at FROM message WHERE discussion_id=?",
+                (discussion_id,),
+            )
             for message_row in rows:
                 sender = message_row[0]
                 content = message_row[1]
@@ -437,7 +443,7 @@ class DiscussionsDB:
                 personality = message_row[7]
                 created_at = message_row[8]
                 finished_generating_at = message_row[9]
-                
+
                 discussions +=f"### {sender}:\n{content}\n"
             discussions +=f"\n"
         return discussions
@@ -546,7 +552,7 @@ class Message:
         )
     def update(self, new_content, new_metadata=None, new_ui=None, commit=True):
         self.finished_generating_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        text = f"UPDATE message SET content = ?"
+        text = "UPDATE message SET content = ?"
         params = [new_content]
         if new_metadata is not None:
             text+=", metadata = ?"
@@ -556,8 +562,7 @@ class Message:
             params.append(new_ui)
 
         text +=", finished_generating_at = ? WHERE id = ?"
-        params.append(self.finished_generating_at)
-        params.append(self.id)
+        params.extend((self.finished_generating_at, self.id))
         self.discussions_db.update(
             text, tuple(params)
         )        
@@ -567,11 +572,8 @@ class Message:
         msgJson = {}
         for attribute_name in attributes:
             attribute_value = getattr(self, attribute_name, None)
-            if attribute_name=="metadata":
-                if type(attribute_value) == str:
-                    msgJson[attribute_name] = json.loads(attribute_value)
-                else:
-                    msgJson[attribute_name] = attribute_value
+            if attribute_name == "metadata" and type(attribute_value) == str:
+                msgJson[attribute_name] = json.loads(attribute_value)
             else:
                 msgJson[attribute_name] = attribute_value
         return msgJson
@@ -653,7 +655,8 @@ class Discussion:
             new_title (str): The nex discussion name
         """
         self.discussions_db.update(
-            f"UPDATE discussion SET title=? WHERE id=?",(new_title,self.discussion_id)
+            "UPDATE discussion SET title=? WHERE id=?",
+            (new_title, self.discussion_id),
         )
 
     def title(self):
@@ -690,10 +693,10 @@ class Discussion:
         )
         msg_dict = [{ c:row[i] for i,c in enumerate(columns)} for row in rows]
         self.messages=[]
-        for msg in msg_dict:
-            self.messages.append(Message.from_dict(self.discussions_db, msg))
-
-        if len(self.messages)>0:
+        self.messages.extend(
+            Message.from_dict(self.discussions_db, msg) for msg in msg_dict
+        )
+        if self.messages:
             self.current_message = self.messages[-1]
 
         return self.messages
@@ -729,8 +732,7 @@ class Discussion:
             message_id (int): The id of the message to be changed
             new_content (str): The nex message content
         """
-        msg = self.get_message(message_id)
-        if msg:
+        if msg := self.get_message(message_id):
             msg.update(new_content, new_metadata, new_ui)
             return True
         else:
@@ -747,9 +749,9 @@ class Discussion:
         current_rank = self.discussions_db.select("SELECT rank FROM message WHERE id=?", (message_id,),False)[0]
 
         # Increment current rank value by 1
-        new_rank = current_rank + 1        
+        new_rank = current_rank + 1
         self.discussions_db.update(
-            f"UPDATE message SET rank = ? WHERE id = ?",(new_rank,message_id)
+            "UPDATE message SET rank = ? WHERE id = ?", (new_rank, message_id)
         )
         return new_rank
 
@@ -763,9 +765,9 @@ class Discussion:
         current_rank = self.discussions_db.select("SELECT rank FROM message WHERE id=?", (message_id,),False)[0]
 
         # Increment current rank value by 1
-        new_rank = current_rank - 1        
+        new_rank = current_rank - 1
         self.discussions_db.update(
-            f"UPDATE message SET rank = ? WHERE id = ?",(new_rank,message_id)
+            "UPDATE message SET rank = ? WHERE id = ?", (new_rank, message_id)
         )
         return new_rank
     

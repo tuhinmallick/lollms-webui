@@ -18,11 +18,11 @@ def add_semicolons_to_file(file_path):
         with open(file_path, 'w') as file:
             for line in lines:
                 if file_path.endswith('.js') and re.search(javascript_pattern, line.strip()):
-                    line = line.rstrip() + ';'
+                    line = f'{line.rstrip()};'
                 elif file_path.endswith('.vue') and re.search(vue_pattern, line.strip()):
-                    line = line.rstrip() + ';'
+                    line = f'{line.rstrip()};'
                 elif file_path.endswith('.html') and re.search(html_pattern, line.strip()):
-                    line = line.rstrip() + ';'
+                    line = f'{line.rstrip()};'
                 file.write(line)
     except FileNotFoundError:
         print(f"File not found: {file_path}")

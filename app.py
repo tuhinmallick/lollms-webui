@@ -32,10 +32,7 @@ def run_update_script(args=None):
     update_script = Path(__file__).parent/"update_script.py"
 
     # Convert Namespace object to a dictionary
-    if args:
-        args_dict = vars(args)
-    else:
-        args_dict = {}
+    args_dict = vars(args) if args else {}
     # Filter out any key-value pairs where the value is None
     valid_args = {key: value for key, value in args_dict.items() if value is not None}
 
@@ -149,14 +146,12 @@ try:
     def get_ip_address():
         # Create a socket object
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        
+
         try:
             # Connect to a remote host (doesn't matter which one)
             sock.connect(('8.8.8.8', 80))
-            
-            # Get the local IP address of the socket
-            ip_address = sock.getsockname()[0]
-            return ip_address
+
+            return sock.getsockname()[0]
         except socket.error:
             return None
         finally:
@@ -486,8 +481,7 @@ try:
             
 
         def get_server_address(self):
-            server_address = request.host_url
-            return server_address
+            return request.host_url
 
         def execute_python(self, code, discussion_id, message_id):
             def spawn_process(code):
@@ -518,7 +512,13 @@ try:
                     # Stop the timer.
                     execution_time = time.time() - start_time
                     error_message = f"Error executing Python code: {ex}"
-                    error_json = {"output": "<div class='text-red-500'>"+ex+"\n"+get_trace_exception(ex)+"</div>", "execution_time": execution_time}
+                    error_json = {
+                        "output": f"<div class='text-red-500'>{ex}"
+                        + "\n"
+                        + get_trace_exception(ex)
+                        + "</div>",
+                        "execution_time": execution_time,
+                    }
                     return json.dumps(error_json)
 
                 # Stop the timer.
@@ -528,12 +528,16 @@ try:
                 if process.returncode != 0:
                     # The child process threw an exception.
                     error_message = f"Error executing Python code: {error.decode('utf8')}"
-                    error_json = {"output": "<div class='text-red-500'>"+error_message+"</div>", "execution_time": execution_time}
+                    error_json = {
+                        "output": f"<div class='text-red-500'>{error_message}</div>",
+                        "execution_time": execution_time,
+                    }
                     return json.dumps(error_json)
 
                 # The child process was successful.
                 output_json = {"output": output.decode("utf8"), "execution_time": execution_time}
                 return json.dumps(output_json)
+
             return spawn_process(code)
 
         def execute_bash(self, code, discussion_id, message_id):
@@ -561,7 +565,13 @@ try:
                     # Stop the timer.
                     execution_time = time.time() - start_time
                     error_message = f"Error executing Python code: {ex}"
-                    error_json = {"output": "<div class='text-red-500'>"+str(ex)+"\n"+get_trace_exception(ex)+"</div>", "execution_time": execution_time}
+                    error_json = {
+                        "output": f"<div class='text-red-500'>{str(ex)}"
+                        + "\n"
+                        + get_trace_exception(ex)
+                        + "</div>",
+                        "execution_time": execution_time,
+                    }
                     return json.dumps(error_json)
 
                 # Stop the timer.
@@ -571,12 +581,16 @@ try:
                 if process.returncode != 0:
                     # The child process threw an exception.
                     error_message = f"Error executing Python code: {error.decode('utf8')}"
-                    error_json = {"output": "<div class='text-red-500'>"+error_message+"</div>", "execution_time": execution_time}
+                    error_json = {
+                        "output": f"<div class='text-red-500'>{error_message}</div>",
+                        "execution_time": execution_time,
+                    }
                     return json.dumps(error_json)
 
                 # The child process was successful.
                 output_json = {"output": output.decode("utf8"), "execution_time": execution_time}
                 return json.dumps(output_json)
+
             return spawn_process(code)
 
         def execute_code(self):
@@ -611,9 +625,9 @@ try:
             if platform.system() == 'Windows':
                 os.startfile(str(root_folder))
             elif platform.system() == 'Linux':
-                os.system('xdg-open ' + str(root_folder))
+                os.system(f'xdg-open {str(root_folder)}')
             elif platform.system() == 'Darwin':
-                os.system('open ' + str(root_folder))
+                os.system(f'open {str(root_folder)}')
             return {"output": "OK", "execution_time": 0}
 
         def copy_files(self, src, dest):
@@ -694,10 +708,8 @@ try:
             discussion_ids = data["discussion_ids"]
             export_format = data["export_format"]
 
-            if export_format=="json":
+            if export_format == "json":
                 discussions = self.db.export_discussions_to_json(discussion_ids)
-            elif export_format=="markdown":
-                discussions = self.db.export_discussions_to_markdown(discussion_ids)
             else:
                 discussions = self.db.export_discussions_to_markdown(discussion_ids)
             return jsonify(discussions)
@@ -820,7 +832,7 @@ try:
                 personality_folder = self.lollms_paths.custom_personalities_path/f"{name}"
             else:
                 personality_folder = self.lollms_paths.personalities_zoo_path/f"{category}"/f"{name}"
-            personality_path = personality_folder/f"config.yaml"
+            personality_path = personality_folder / "config.yaml"
             personality_info = {}
             with open(personality_path) as config_file:
                 config_data = yaml.load(config_file, Loader=yaml.FullLoader)
@@ -837,9 +849,9 @@ try:
             jpg_logo_path = assets_path / 'logo.jpg'
             jpeg_logo_path = assets_path / 'logo.jpeg'
             bmp_logo_path = assets_path / 'logo.bmp'
-            
+
             personality_info['has_logo'] = png_logo_path.is_file() or gif_logo_path.is_file()
-            
+
             if gif_logo_path.exists():
                 personality_info['avatar'] = str(gif_logo_path).replace("\\","/")
             elif webp_logo_path.exists():
@@ -870,7 +882,7 @@ try:
                 self.config["top_k"]=int(data['setting_value'])
             elif setting_name== "top_p":
                 self.config["top_p"]=float(data['setting_value'])
-                
+
             elif setting_name== "repeat_penalty":
                 self.config["repeat_penalty"]=float(data['setting_value'])
             elif setting_name== "repeat_last_n":
@@ -884,16 +896,22 @@ try:
             elif setting_name== "personality_folder":
                 self.personality_name=data['setting_value']
                 if len(self.config["personalities"])>0:
-                    if self.config["active_personality_id"]<len(self.config["personalities"]):
-                        self.config["personalities"][self.config["active_personality_id"]] = f"{self.personality_category}/{self.personality_name}"
-                    else:
+                    if self.config["active_personality_id"] >= len(
+                        self.config["personalities"]
+                    ):
                         self.config["active_personality_id"] = 0
-                        self.config["personalities"][self.config["active_personality_id"]] = f"{self.personality_category}/{self.personality_name}"
-                    
-                    if self.personality_category!="custom_personalities":
-                        personality_fn = self.lollms_paths.personalities_zoo_path/self.config["personalities"][self.config["active_personality_id"]]
-                    else:
-                        personality_fn = self.lollms_paths.personal_personalities_path/self.config["personalities"][self.config["active_personality_id"]].split("/")[-1]
+                    self.config["personalities"][self.config["active_personality_id"]] = f"{self.personality_category}/{self.personality_name}"
+                    personality_fn = (
+                        self.lollms_paths.personalities_zoo_path
+                        / self.config["personalities"][
+                            self.config["active_personality_id"]
+                        ]
+                        if self.personality_category != "custom_personalities"
+                        else self.lollms_paths.personal_personalities_path
+                        / self.config["personalities"][
+                            self.config["active_personality_id"]
+                        ].split("/")[-1]
+                    )
                     self.personality.load_personality(personality_fn)
                 else:
                     self.config["personalities"].append(f"{self.personality_category}/{self.personality_name}")
@@ -925,7 +943,7 @@ try:
                             self.mount_personality(0)
                         gc.collect()
                         self.binding = BindingBuilder().build_binding(self.config, self.lollms_paths, self.notify)
-                        
+
                         self.model = self.binding.build_model()
                         for per in self.mounted_personalities:
                             if per is not None:
@@ -968,17 +986,16 @@ try:
                         print(f"Configuration {data['setting_name']} set to {data['setting_value']}")
                     return jsonify({'setting_name': data['setting_name'], "status":True})
 
+            elif data['setting_name'] in self.config.config.keys():
+                self.config[data['setting_name']] = data['setting_value']
             else:
-                if data['setting_name'] in self.config.config.keys():
-                    self.config[data['setting_name']] = data['setting_value']
-                else:
-                    if self.config["debug"]:
-                        print(f"Configuration {data['setting_name']} couldn't be set to {data['setting_value']}")
-                    return jsonify({'setting_name': data['setting_name'], "status":False})
+                if self.config["debug"]:
+                    print(f"Configuration {data['setting_name']} couldn't be set to {data['setting_value']}")
+                return jsonify({'setting_name': data['setting_name'], "status":False})
 
             if self.config["debug"]:
                 print(f"Configuration {data['setting_name']} set to {data['setting_value']}")
-                
+
             ASCIIColors.success(f"Configuration {data['setting_name']} updated")
             if self.config.auto_save:
                 self.config.save_config()
@@ -1130,7 +1147,12 @@ try:
                         try:
                             bnd = load_config(card)
                             bnd["folder"]=f.stem
-                            installed = (self.lollms_paths.personal_configuration_path/"bindings"/f.stem/f"config.yaml").exists()
+                            installed = (
+                                self.lollms_paths.personal_configuration_path
+                                / "bindings"
+                                / f.stem
+                                / "config.yaml"
+                            ).exists()
                             bnd["installed"]=installed
                             ui_file_path = f/"ui.html"
                             if ui_file_path.exists():
@@ -1230,23 +1252,21 @@ try:
         
 
         def list_models(self):
-            if self.binding is not None:
-                models = self.binding.list_models(self.config)
-                ASCIIColors.yellow("Listing models")
-                return jsonify(models)
-            else:
+            if self.binding is None:
                 return jsonify([])
+            models = self.binding.list_models(self.config)
+            ASCIIColors.yellow("Listing models")
+            return jsonify(models)
         
         def get_active_model(self):
-            if self.binding is not None:
-                try:
-                    models = self.binding.list_models(self.config)
-                    index = models.index(self.config.model_name)
-                    ASCIIColors.yellow("Listing active models")
-                    return jsonify({"model":models[index],"index":index})
-                except Exception as ex:
-                    return jsonify(None)
-            else:
+            if self.binding is None:
+                return jsonify(None)
+            try:
+                models = self.binding.list_models(self.config)
+                index = models.index(self.config.model_name)
+                ASCIIColors.yellow("Listing active models")
+                return jsonify({"model":models[index],"index":index})
+            except Exception as ex:
                 return jsonify(None)
 
         def list_personalities_categories(self):
@@ -1409,10 +1429,10 @@ try:
             return send_from_directory(path, fn)
 
         def serve_help(self, filename):
-            root_dir = Path(__file__).parent/f"help"
+            root_dir = Path(__file__).parent / "help"
             root_dir.mkdir(exist_ok=True, parents=True)
             path = str(root_dir/"/".join(filename.split("/")[:-1]))
-                                
+
             fn = filename.split("/")[-1]
             return send_from_directory(path, fn)
 
@@ -1488,8 +1508,8 @@ try:
         def install_model_from_path(self):
             from tkinter import Tk
             from tkinter.filedialog import askopenfilename
-            
-            ASCIIColors.info(f"- Selecting model ...")
+
+            ASCIIColors.info("- Selecting model ...")
             # Define the file types
             filetypes = [
                 ("Model file", self.binding.supported_file_extensions),
@@ -1502,12 +1522,12 @@ try:
 
             # Open the file dialog
             file_path = askopenfilename(filetypes=filetypes)
-            
+
             file_path = Path(file_path)
             #
-            with open(str(self.lollms_paths.personal_models_path/self.config.binding_name/(file_path.stem+".reference")),"w") as f:
+            with open(str(self.lollms_paths.personal_models_path/self.config.binding_name / f"{file_path.stem}.reference"), "w") as f:
                 f.write(file_path)
-            
+
             return jsonify({
                             "status": True
                         })
@@ -1519,7 +1539,7 @@ try:
             except Exception as e:
                 print(f"Error occurred while parsing JSON: {e}")
                 return jsonify({"status":False, 'error':str(e)})
-            if not 'name' in data.keys():
+            if 'name' not in data.keys():
                 try:
                     data['name']=self.config.extensions[-1]
                 except Exception as ex:
@@ -1554,7 +1574,7 @@ try:
             except Exception as e:
                 print(f"Error occurred while parsing JSON: {e}")
                 return jsonify({"status":False, 'error':str(e)})
-            if not 'name' in data:
+            if 'name' not in data:
                 data['name']=self.config.personalities[self.config["active_personality_id"]]
             try:
                 personality_path = self.lollms_paths.personalities_zoo_path / data['name']
@@ -1684,11 +1704,10 @@ try:
             file_path = filedialog.askopenfilename()
 
         def check_update(self):
-            if self.config.auto_update:
-                res = check_update_()
-                return jsonify({'update_availability':res})
-            else:
+            if not self.config.auto_update:
                 return jsonify({'update_availability':False})
+            res = check_update_()
+            return jsonify({'update_availability':res})
 
         def restart_program(self):
             ASCIIColors.info("")
@@ -1734,10 +1753,10 @@ try:
                     ASCIIColors.info("No gptqlora found in your personal space.\nCloning the gptqlora repo")
                     subprocess.run(["git", "clone", gptqlora_repo, self.lollms_paths.gptqlora_path])
                     subprocess.run(["pip", "install", "-r", "requirements.txt"], cwd=self.lollms_paths.gptqlora_path)
-                    
+
                 data = request.get_json()
                 ASCIIColors.info(f"--- Trainging of model {data['model_name']} requested ---")
-                ASCIIColors.info(f"Cleaning memory:")
+                ASCIIColors.info("Cleaning memory:")
                 fn = self.binding.binding_folder_name
                 del self.binding
                 self.binding = None
@@ -1746,17 +1765,17 @@ try:
                     per.model = None
                 gc.collect()
                 ASCIIColors.info(f"issuing command : python gptqlora.py --model_path {self.lollms_paths.personal_models_path/fn/data['model_name']}")
-                subprocess.run(["python", "gptqlora.py", "--model_path", self.lollms_paths.personal_models_path/fn/data["model_name"]],cwd=self.lollms_paths.gptqlora_path)    
+                subprocess.run(["python", "gptqlora.py", "--model_path", self.lollms_paths.personal_models_path/fn/data["model_name"]],cwd=self.lollms_paths.gptqlora_path)
                 return jsonify({'status':True})
 
         def get_lollms_version(self):
             version = pkg_resources.get_distribution('lollms').version
-            ASCIIColors.yellow("Lollms version : "+ version)
+            ASCIIColors.yellow(f"Lollms version : {version}")
             return jsonify({"version":version})
 
         def get_lollms_webui_version(self):
             version = __version__
-            ASCIIColors.yellow("Lollms webui version : "+ version)
+            ASCIIColors.yellow(f"Lollms webui version : {version}")
             return jsonify({"version":version})
         
         
@@ -1817,11 +1836,11 @@ try:
                 package_full_path = self.lollms_paths.custom_personalities_path/f"{name}"
             else:            
                 package_full_path = self.lollms_paths.personalities_zoo_path/package_path
-            
+
             config_file = package_full_path / "config.yaml"
             if config_file.exists():
                 if language:
-                    package_path += ":" + language
+                    package_path += f":{language}"
                 """
                 if package_path in self.config["personalities"]:
                     ASCIIColors.error("Can't mount exact same personality twice")
@@ -1851,7 +1870,7 @@ try:
                     return jsonify({"status": True,
                                     "personalities":self.config["personalities"],
                                     "active_personality_id":self.config["active_personality_id"]
-                                    })         
+                                    })
             else:
                 pth = str(config_file).replace('\\','/')
                 ASCIIColors.error(f"nok : Personality not found @ {pth}")            
@@ -1879,7 +1898,7 @@ try:
                 package_full_path = self.lollms_paths.custom_personalities_path/f"{name}"
             else:            
                 package_full_path = self.lollms_paths.personalities_zoo_path/package_path
-            
+
             config_file = package_full_path / "config.yaml"
             if config_file.exists():
                 ASCIIColors.info(f"Unmounting personality {package_path}")
@@ -1887,15 +1906,10 @@ try:
                 self.config["personalities"].remove(f"{category}/{name}")
                 if self.config["active_personality_id"]>=index:
                     self.config["active_personality_id"]=0
-                if len(self.config["personalities"])>0:
-                    self.mounted_personalities = self.rebuild_personalities()
-                    self.personality = self.mounted_personalities[self.config["active_personality_id"]]
-                else:
+                if len(self.config["personalities"]) <= 0:
                     self.personalities = ["generic/lollms"]
-                    self.mounted_personalities = self.rebuild_personalities()
-                    self.personality = self.mounted_personalities[self.config["active_personality_id"]]
-
-
+                self.mounted_personalities = self.rebuild_personalities()
+                self.personality = self.mounted_personalities[self.config["active_personality_id"]]
                 ASCIIColors.info(f"Mounting personality {package_path}")
                 self.config["personalities"].append(package_path)
                 self.config["active_personality_id"]= len(self.config["personalities"])-1
@@ -1911,7 +1925,7 @@ try:
                     return jsonify({"status": True,
                                     "personalities":self.config["personalities"],
                                     "active_personality_id":self.config["active_personality_id"]
-                                    })         
+                                    })
             else:
                 pth = str(config_file).replace('\\','/')
                 ASCIIColors.error(f"nok : Personality not found @ {pth}")
@@ -1966,21 +1980,17 @@ try:
             
         def get_active_personality_settings(self):
             print("- Retreiving personality settings")
-            if self.personality.processor is not None:
-                if hasattr(self.personality.processor,"personality_config"):
-                    return jsonify(self.personality.processor.personality_config.config_template.template)
-                else:
-                    return jsonify({})        
+            if self.personality.processor is None:
+                return jsonify({})
+            if hasattr(self.personality.processor,"personality_config"):
+                return jsonify(self.personality.processor.personality_config.config_template.template)
             else:
                 return jsonify({})               
 
         def get_active_binding_settings(self):
             print("- Retreiving binding settings")
-            if self.binding is not None:
-                if hasattr(self.binding,"binding_config"):
-                    return jsonify(self.binding.binding_config.config_template.template)
-                else:
-                    return jsonify({})        
+            if self.binding is not None and hasattr(self.binding, "binding_config"):
+                return jsonify(self.binding.binding_config.config_template.template)
             else:
                 return jsonify({})  
             
@@ -1993,17 +2003,16 @@ try:
             except Exception as e:
                 print(f"Error occurred while parsing JSON: {e}")
                 return
-            
-            if self.personality.processor is not None:
-                if hasattr(self.personality.processor,"personality_config"):
-                    self.personality.processor.personality_config.update_template(data)
-                    self.personality.processor.personality_config.config.save_config()
-                    if self.config.auto_save:
-                        ASCIIColors.info("Saving configuration")
-                        self.config.save_config()
-                    return jsonify({'status':True})
-                else:
-                    return jsonify({'status':False})        
+
+            if self.personality.processor is None:
+                return jsonify({'status':False})
+            if hasattr(self.personality.processor,"personality_config"):
+                self.personality.processor.personality_config.update_template(data)
+                self.personality.processor.personality_config.config.save_config()
+                if self.config.auto_save:
+                    ASCIIColors.info("Saving configuration")
+                    self.config.save_config()
+                return jsonify({'status':True})
             else:
                 return jsonify({'status':False})            
 
@@ -2062,13 +2071,9 @@ try:
                 ASCIIColors.info(f"Unmounting personality {package_path}")
                 index = self.config["extensions"].index(f"{category}/{name}")
                 self.config["extensions"].remove(f"{category}/{name}")
-                if len(self.config["extensions"])>0:
-                    self.mounted_personalities = self.rebuild_extensions()
-                else:
+                if len(self.config["extensions"]) <= 0:
                     self.personalities = ["generic/lollms"]
-                    self.mounted_personalities = self.rebuild_extensions()
-
-
+                self.mounted_personalities = self.rebuild_extensions()
                 ASCIIColors.info(f"Mounting personality {package_path}")
                 self.config["personalities"].append(package_path)
                 self.mounted_personalities = self.rebuild_extensions()
@@ -2082,7 +2087,7 @@ try:
                     return jsonify({"status": True,
                                     "personalities":self.config["personalities"],
                                     "active_personality_id":self.config["active_personality_id"]
-                                    })         
+                                    })
             else:
                 pth = str(config_file).replace('\\','/')
                 ASCIIColors.error(f"nok : Personality not found @ {pth}")
@@ -2131,30 +2136,23 @@ try:
             except Exception as e:
                 print(f"Error occurred while parsing JSON: {e}")
                 return
-            
-            if self.binding is not None:
-                if hasattr(self.binding,"binding_config"):
-                    for entry in data:
-                        if entry["type"]=="list" and type(entry["value"])==str:
-                            try:
-                                v = json.loads(entry["value"])
-                            except:
-                                v= ""
-                            if type(v)==list:
-                                entry["value"] = v
-                            else:
-                                entry["value"] = [entry["value"]]
-                    self.binding.binding_config.update_template(data)
-                    self.binding.binding_config.config.save_config()
-                    self.binding.settings_updated()
-                    if self.config.auto_save:
-                        ASCIIColors.info("Saving configuration")
-                        self.config.save_config()
-                    return jsonify({'status':True})
-                else:
-                    return jsonify({'status':False})        
-            else:
-                return jsonify({'status':False})     
+
+            if self.binding is None or not hasattr(self.binding, "binding_config"):
+                return jsonify({'status':False})
+            for entry in data:
+                if entry["type"]=="list" and type(entry["value"])==str:
+                    try:
+                        v = json.loads(entry["value"])
+                    except:
+                        v= ""
+                    entry["value"] = v if type(v)==list else [entry["value"]]
+            self.binding.binding_config.update_template(data)
+            self.binding.binding_config.config.save_config()
+            self.binding.settings_updated()
+            if self.config.auto_save:
+                ASCIIColors.info("Saving configuration")
+                self.config.save_config()
+            return jsonify({'status':True})     
         
             
         def get_personality_settings(self):
@@ -2179,11 +2177,10 @@ try:
                                         model=self.model,
                                         app=self,
                                         run_scripts=True)
-            if personality.processor is not None:
-                if hasattr(personality.processor,"personality_config"):
-                    return jsonify(personality.processor.personality_config.config_template.template)
-                else:
-                    return jsonify({})        
+            if personality.processor is not None and hasattr(
+                personality.processor, "personality_config"
+            ):
+                return jsonify(personality.processor.personality_config.config_template.template)
             else:
                 return jsonify({})       
 
@@ -2214,11 +2211,15 @@ try:
             try:
                 ASCIIColors.info("Creating a model reference")
                 path = Path(request.path)
-                ref_path=self.lollms_paths.personal_models_path/self.config.binding_name/(path.name+".reference")
+                ref_path = (
+                    self.lollms_paths.personal_models_path
+                    / self.config.binding_name
+                    / f"{path.name}.reference"
+                )
                 with open(ref_path,"w") as f:
                     f.write(str(path))
 
-                return jsonify({"status": True})   
+                return jsonify({"status": True})
             except Exception as ex:
                 ASCIIColors.error(ex)
                 trace_exception(ex)
@@ -2306,10 +2307,9 @@ try:
             discussion_id = request.args.get("id")
             if self.connections[client_id]["current_discussion"] is None:
                 return jsonify({"status": False,"message":"No discussion is selected"})
-            else:
-                new_rank = self.connections[client_id]["current_discussion"].delete_message(discussion_id)
-                ASCIIColors.yellow("Message deleted")
-                return jsonify({"status":True,"new_rank": new_rank})
+            new_rank = self.connections[client_id]["current_discussion"].delete_message(discussion_id)
+            ASCIIColors.yellow("Message deleted")
+            return jsonify({"status":True,"new_rank": new_rank})
 
     
         def get_available_models(self):
