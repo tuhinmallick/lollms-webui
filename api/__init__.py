@@ -100,12 +100,10 @@ def parse_requirements_file(requirements_path):
             if is_package_installed(package_name):
                 # The package is already installed
                 print(f"{package_name} is already installed.")
+            elif version_specifier:
+                install_package(f"{package_name}{version_specifier}")
             else:
-                # The package is not installed, install it
-                if version_specifier:
-                    install_package(f"{package_name}{version_specifier}")
-                else:
-                    install_package(package_name)
+                install_package(package_name)
 
 
 # ===========================================================
